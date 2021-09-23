@@ -26,7 +26,7 @@
 
 **Required** URL TO YOUR DOCKER IMAGE (Ex: AWS or DOCKER REGISTRY).
 
-##INFO:
+## INFO:
 
 If you deploy a image with "ghcr.io/organization/example/imageName:**latest**" only active deployments with latest will be updatet. 
 If you deploy a image with "ghcr.io/organization/example/imageName:**x.x.x**" only active deployment with version number will be updated
