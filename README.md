@@ -26,6 +26,10 @@
 
 **Required** URL TO YOUR DOCKER IMAGE (Ex: AWS or DOCKER REGISTRY).
 
+### `Regex`
+
+***Required*** REGEX for Version-Control: "[:][0-9].[0-9].[0-9]"
+
 ## INFO:
 
 If you deploy a image with "ghcr.io/organization/example/imageName:**latest**" only active deployments with latest will be updatet. 
@@ -43,3 +47,4 @@ If you deploy a image with "ghcr.io/organization/example/imageName:**x.x.x**" on
     SERVICE_NAME: 'myProject'
     NAMESPACE: 'test'
     DOCKER_IMAGE: 'ghcr.io/organization/example/imageName:latest'
+    REGEX: '[:][0-9].[0-9].[0-9]'

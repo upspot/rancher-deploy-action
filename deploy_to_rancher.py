@@ -6,7 +6,7 @@ import re
 
 class DeployRancher:
     def __init__(self, rancher_access_key, rancher_secret_key, rancher_url_api,
-                 rancher_service_name, rancher_namespace, rancher_docker_image):
+                 rancher_service_name, rancher_namespace, rancher_docker_image, rancher_regex):
         self.access_key = rancher_access_key
         self.secret_key = rancher_secret_key
         self.rancher_url_api = rancher_url_api
@@ -16,6 +16,7 @@ class DeployRancher:
         self.rancher_deployment_path = ''
         self.rancher_namespace = ''
         self.rancher_workload_url_api = ''
+        self.rancher_regex = ''
 
     def deploy(self):
         rp = requests.get('{}/projects'.format(self.rancher_url_api), auth=(self.access_key, self.secret_key))
@@ -56,7 +57,7 @@ class DeployRancher:
                           json=config, auth=(self.access_key, self.secret_key))
         else:
             actualImage = response['containers'][0]['image']
-            isActualVersion = re.search("[:][0-9].[0-9].[0-9]", actualImage)
+            isActualVersion = re.search(self.rancher_regex, actualImage)
             isActualLatest = re.search("latest", actualImage)
 
             if (isActualVersion and isVersion ) or (isLatest and isActualLatest):
@@ -68,9 +69,9 @@ class DeployRancher:
 
 
 def deploy_in_rancher(rancher_access_key, rancher_secret_key, rancher_url_api,
-                      rancher_service_name, rancher_namespace, rancher_docker_image):
+                      rancher_service_name, rancher_namespace, rancher_docker_image, rancher_regex):
     deployment = DeployRancher(rancher_access_key, rancher_secret_key, rancher_url_api,
-                               rancher_service_name, rancher_namespace, rancher_docker_image)
+                               rancher_service_name, rancher_namespace, rancher_docker_image, rancher_regex)
     deployment.deploy()
 
 
@@ -81,10 +82,11 @@ if __name__ == '__main__':
     rancher_service_name = os.environ['SERVICE_NAME']
     rancher_docker_image = os.environ['DOCKER_IMAGE']
     rancher_namespace = os.environ['NAMESPACE']
+    rancher_regex = os.environ['REGEX']
 
     try:
         deploy_in_rancher(rancher_access_key, rancher_secret_key, rancher_url_api,
-                          rancher_service_name, rancher_namespace, rancher_docker_image)
+                          rancher_service_name, rancher_namespace, rancher_docker_image, rancher_regex)
 
     except Exception as e:
         print(e)
