@@ -21,51 +21,53 @@ class DeployRancher:
     def deploy(self):
         rp = requests.get('{}/projects'.format(self.rancher_url_api), auth=(self.access_key, self.secret_key))
         projects = rp.json()
+        if rp.status_code != 401 :
+            isVersion = re.search(self.rancher_regex, self.docker_image)
+            isLatest = re.search("latest", self.docker_image)
+            namespaces = self.namespace.split(',')
 
-        isVersion = re.search(self.rancher_regex, self.docker_image)
-        isLatest = re.search("latest", self.docker_image)
-        namespaces = self.namespace.split(',')
+            for p in projects['data']:
+                w_url = '{}/projects/{}/workloads'.format(self.rancher_url_api, p['id'])
+                rw = requests.get(w_url, auth=(self.access_key, self.secret_key))
+                workload = rw.json()
+                for w in workload['data']:
+                    if w['name'] == self.service_name and w['namespaceId'] in namespaces:
+                        self.rancher_workload_url_api = w_url
+                        self.rancher_deployment_path = w['links']['self']
+                        self.rancher_namespace = w['namespaceId']
 
-        for p in projects['data']:
-            w_url = '{}/projects/{}/workloads'.format(self.rancher_url_api, p['id'])
-            rw = requests.get(w_url, auth=(self.access_key, self.secret_key))
-            workload = rw.json()
-            for w in workload['data']:
-                if w['name'] == self.service_name and w['namespaceId'] in namespaces:
-                    self.rancher_workload_url_api = w_url
-                    self.rancher_deployment_path = w['links']['self']
-                    self.rancher_namespace = w['namespaceId']
-                    rget = requests.get(self.rancher_deployment_path,
-                                        auth=(self.access_key, self.secret_key))
-                    response = rget.json()
-                    if 'status' in response and response['status'] == 404:
-                        config = {
-                            "containers": [{
-                                "imagePullPolicy": "Always",
-                                "image": self.docker_image,
-                                "name": self.service_name,
-                            }],
-                            "namespaceId": self.rancher_namespace,
-                            "name": self.service_name
-                        }
+                        if self.rancher_deployment_path != '' :
+                            rget = requests.get(self.rancher_deployment_path, auth=(self.access_key, self.secret_key))
+                            response = rget.json()
+                            if 'status' in response and response['status'] == 404:
+                                config = {
+                                    "containers": [{
+                                        "imagePullPolicy": "Always",
+                                        "image": self.docker_image,
+                                        "name": self.service_name,
+                                    }],
+                                    "namespaceId": self.rancher_namespace,
+                                    "name": self.service_name
+                                }
 
-                        requests.post(self.rancher_workload_url_api,
-                                    json=config, auth=(self.access_key, self.secret_key))
-                    else:
-                        actualImage = response['containers'][0]['image']
-                        isActualVersion = re.search(self.rancher_regex, actualImage)
-                        isActualLatest = re.search("latest", actualImage)
+                                requests.post(self.rancher_workload_url_api,
+                                              json=config, auth=(self.access_key, self.secret_key))
+                            else:
+                                actualImage = response['containers'][0]['image']
+                                isActualVersion = re.search(self.rancher_regex, actualImage)
+                                isActualLatest = re.search("latest", actualImage)
 
-                        if (isActualVersion and isVersion ) or (isLatest and isActualLatest):
-                            response['containers'][0]['image'] = self.docker_image
+                                if (isActualVersion and isVersion ) or (isLatest and isActualLatest):
+                                    response['containers'][0]['image'] = self.docker_image
 
-                            requests.put(self.rancher_deployment_path + '?action=redeploy',
-                                        json=response, auth=(self.access_key, self.secret_key))
+                                    requests.put(self.rancher_deployment_path + '?action=redeploy',
+                                                 json=response, auth=(self.access_key, self.secret_key))
 
-            if self.rancher_deployment_path != '':
-                break
 
-        sys.exit(0)
+            if self.rancher_deployment_path == '' :
+                sys.exit('NO DEPLOYMENT FOUND!')
+        else:
+            sys.exit(rp.text)
 
 
 def deploy_in_rancher(rancher_access_key, rancher_secret_key, rancher_url_api,
